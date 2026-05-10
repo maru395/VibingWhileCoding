@@ -15,12 +15,12 @@ class PipelineConfig:
     ambiguous_keys: re.Pattern
     safe_values: re.Pattern
     sql_injection: re.Pattern
-    direct_reference: re.Pattern
+    direct_reference: re.Pattern # file path access safeguard
 
 
 def main():
-    FILE_PATH = "test.py"
-
+    FILE_PATH = "test.py" # to be inputted by the user
+    # TODO add safeguard for all language
     config = PipelineConfig(
         file_path=FILE_PATH,
         language=get_lang(FILE_PATH),
@@ -67,21 +67,17 @@ def main():
             r'(execute|executemany|raw|query)\s*\(\s*[\'"].*?\+.*?[\'"]'
             r'|(execute|executemany|raw|query)\s*\(\s*f[\'"].*?\{.*?\}.*?[\'"]'
             r'|(execute|executemany|raw|query)\s*\(\s*[\'"].*?%.*?[\'"\s]*%'
-            r'|(execute|executemany|raw|query)\s*\([\s\S]*?\+[\s\S]*?\)'  # ← catches multiline
+            r'|(execute|executemany|raw|query)\s*\([\s\S]*?\+[\s\S]*?\)'  
             r')\s*',
-            re.IGNORECASE | re.DOTALL  # ← DOTALL makes . match \n
+            re.IGNORECASE | re.DOTALL 
         ),
         direct_reference=re.compile(
             r'('
-            # File path from user input directly
             r'open\s*\(\s*(request|req|input|args|params|data|query)'
             r'|open\s*\(\s*f[\'"].*\{.*(request|req|input|args|params|data|query).*\}.*[\'"]'
-            # os.path operations with user input
             r'|os\.(path\.(join|abspath|open)|getcwd)\s*\(.*\b(request|req|input|args|params|data|query)\b'
-            # send_file / send_from_directory with user input directly
             r'|send_file\s*\(.*\b(request|req|input|args|params|data|query)\b'
             r'|send_from_directory\s*\(.*\b(request|req|input|args|params|data|query)\b'
-            # Reading files from raw user input
             r'|filename\s*=\s*(request|req)\.(args|form|json|data|params)\b'
             r')',
             re.IGNORECASE
@@ -143,7 +139,7 @@ def scan_file(config: PipelineConfig):
 
     with open(config.file_path, "r") as file:
         lines = file.readlines()
-        full_content = "".join(lines)  # entire file as one string
+        full_content = "".join(lines)  
 
         for line_number, line in enumerate(lines, start=1):
             stripped = line.strip()
@@ -207,7 +203,7 @@ def scan_file(config: PipelineConfig):
 
 # ai consultation part (used local llm for this project)
 def ask_ai_recommendation(vulnerable_code, vulnerability_type, config: PipelineConfig):
-
+    # parameters can also be improved further
     if vulnerability_type == "Hardcoded Secret":
         specific_instruction = (
             "Use environment variables (e.g., os.environ) instead of hardcoding.\n\n"
@@ -223,7 +219,7 @@ def ask_ai_recommendation(vulnerable_code, vulnerability_type, config: PipelineC
             "Output: cursor.execute(\"SELECT * FROM users WHERE name = ?\", (name,))\n\n"
             "Example:\n"
             "Input:  query = \"SELECT * FROM users WHERE id = '\" + user_id + \"'\"\n"
-            "Output: query = (\"SELECT * FROM users WHERE id = ?\", (user_id,))\n\n"  # covers Test 6
+            "Output: query = (\"SELECT * FROM users WHERE id = ?\", (user_id,))\n\n"  
             "Example:\n"
             "Input:  cursor.execute(f\"DELETE FROM users WHERE id = {user_id}\")\n"
             "Output: cursor.execute(\"DELETE FROM users WHERE id = ?\", (user_id,))\n"
@@ -248,9 +244,9 @@ def ask_ai_recommendation(vulnerable_code, vulnerability_type, config: PipelineC
     data = {
         "model": config.model,
         "prompt": (
-            f"Fix this {config.language} {vulnerability_type} vulnerability.\n"
-            f"{specific_instruction}\n"
-            f"Now fix this and return ONLY the single fixed line, no imports, no explanations:\n"
+            f"You are an expert DevSecOps engineer the following {config.language} code contains {vulnerability_type} vulnerability.\n"
+            f"given these examples: {specific_instruction}\n"
+            f"rewrite the code and return ONLY the single fixed line, no imports, no explanations:\n"
             f"Input:  {vulnerable_code}\n"
             f"Output:"
         ),
