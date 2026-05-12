@@ -15,7 +15,8 @@ class PipelineConfig:
     ambiguous_keys: re.Pattern
     safe_values: re.Pattern
     sql_injection: re.Pattern
-    direct_reference: re.Pattern # file path access safeguard
+    direct_reference: re.Pattern 
+    command_injection: re.Pattern
 
 
 def main():
@@ -81,7 +82,44 @@ def main():
             r'|filename\s*=\s*(request|req)\.(args|form|json|data|params)\b'
             r')',
             re.IGNORECASE
-        )
+        ),
+        command_injection=re.compile(
+            r'('
+            # os.system — only with user input or string building
+            r'os\.system\s*\(.*\b(request|req|input|args|params|data|query|user|stdin)\b'
+            r'|os\.system\s*\(\s*f[\'"].*\{.*\}.*[\'"]'
+            r'|os\.system\s*\(\s*[\'"].*\+.*[\'"]'
+
+            # os.popen — only with user input
+            r'|os\.popen\s*\(.*\b(request|req|input|args|params|data|query|user|stdin)\b'
+            r'|os\.popen\s*\(\s*f[\'"].*\{.*\}.*[\'"]'
+            r'|os\.popen\s*\(\s*[\'"].*\+.*[\'"]'
+
+            # os.exec* — only with user input
+            r'|os\.exec(v|ve|vp|vpe|l|le|lp|lpe)\s*\(.*\b(request|req|input|args|params|data|query|user)\b'
+
+            # os.spawn* — only with user input
+            r'|os\.spawn(l|le|lp|lpe|v|ve|vp|vpe)\s*\(.*\b(request|req|input|args|params|data|query|user)\b'
+
+            # subprocess — only with user input AND shell=True together, or string building
+            r'|subprocess\.(call|run|Popen|check_output|check_call|getoutput|getstatusoutput)\s*\(.*shell\s*=\s*True.*\b(request|req|input|args|params|data|query|user|stdin)\b'
+            r'|subprocess\.(call|run|Popen|check_output|check_call|getoutput|getstatusoutput)\s*\(.*\b(request|req|input|args|params|data|query|user|stdin)\b.*shell\s*=\s*True'
+            r'|subprocess\.(call|run|Popen|check_output|check_call)\s*\(\s*f[\'"].*\{.*\}.*[\'"]'
+            r'|subprocess\.(call|run|Popen|check_output|check_call)\s*\(\s*[\'"].*\+.*[\'"]'
+
+            # eval/exec — only with user input
+            r'|eval\s*\(.*\b(request|req|input|args|params|data|query|user)\b'
+            r'|exec\s*\(.*\b(request|req|input|args|params|data|query|user)\b'
+
+            # pty/pexpect — only with user input
+            r'|pty\.spawn\s*\(.*\b(request|req|input|args|params|data|query|user)\b'
+            r'|pexpect\.run\s*\(.*\b(request|req|input|args|params|data|query|user)\b'
+
+            # commands module — only with user input
+            r'|commands\.(getoutput|getstatusoutput)\s*\(.*\b(request|req|input|args|params|data|query|user)\b'
+            r')',
+            re.IGNORECASE | re.DOTALL
+        ),
     )
 
     conn = set_up_database()
@@ -197,6 +235,18 @@ def scan_file(config: PipelineConfig):
                     "confidence": "HIGH",
                     "code": block
                 })
+                continue
+
+                # Tier 5: Command Injection — HIGH
+                if config.command_injection.search(line_window):
+                    block = line_window.strip()
+                    findings.append({
+                        "file_path": config.file_path,
+                        "line_number": line_number,
+                        "type": "Command Injection",
+                        "confidence": "HIGH",
+                        "code": block
+                    })
 
     return findings
 
@@ -238,6 +288,21 @@ def ask_ai_recommendation(vulnerable_code, vulnerability_type, config: PipelineC
             "Input:  send_file(request.args.get('path'))\n"
             "Output: send_file(FILE_MAP.get(request.args.get('id')))\n"
         )
+
+    elif vulnerability_type == "Command Injection":
+        specific_instruction = (
+            "Use subprocess with a list of arguments instead of shell=True or string concatenation.\n\n"
+            "Example:\n"
+            "Input:  os.system(\"ping \" + host)\n"
+            "Output: subprocess.run([\"ping\", host], shell=False)\n\n"
+            "Example:\n"
+            "Input:  subprocess.call(f\"nmap {target}\", shell=True)\n"
+            "Output: subprocess.run([\"nmap\", target], shell=False)\n\n"
+            "Example:\n"
+            "Input:  eval(request.args.get('code'))\n"
+            "Output: # eval() with user input is unsafe and should be removed entirely\n"
+        )
+
     else:
         specific_instruction = "Apply standard secure coding practices to fix the vulnerability.\n"
 
