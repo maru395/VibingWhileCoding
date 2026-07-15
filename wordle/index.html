@@ -4,190 +4,600 @@
     <meta charset="utf-8" />
     <title>Offline Wordle</title>
     <style>
-      body {
-        margin: 0;
-        background: #121213;
-        color: #fff;
-        font-family: system-ui, sans-serif;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-      h1 {
-        letter-spacing: 2px;
-      }
       #board {
         display: grid;
-        grid-template-columns: repeat(6, 62px);
-        gap: 6px;
-        margin: 20px;
+
+        grid-template-columns: repeat(6, var(--tile-size));
+
+        gap: 8px;
       }
       .tile {
-        width: 62px;
-        height: 62px;
-        border: 2px solid #3a3a3c;
-        border-radius: 6px;
+        transition:
+          transform 0.12s,
+          background 0.2s,
+          border-color 0.2s,
+          box-shadow 0.2s;
+        transform-style: preserve-3d;
+
+        backface-visibility: hidden;
+        width: var(--tile-size);
+        height: var(--tile-size);
+
+        border: 2px solid var(--border);
+
+        background: #182233;
+
+        border-radius: 4px;
+
         display: flex;
-        align-items: center;
+
         justify-content: center;
+
+        align-items: center;
+
         font-size: 2rem;
+
         font-weight: 700;
+
+        transition: 0.15s;
+
         text-transform: uppercase;
       }
-      .correct {
-        background: #6aaa64;
-        border-color: #6aaa64;
+      .tile:not(:empty) {
+        border-color: #6c7b91;
       }
-      .present {
-        background: #c9b458;
-        border-color: #c9b458;
+      .tile.pop {
+        animation: pop 0.1s ease;
       }
-      .absent {
-        background: #3a3a3c;
-        border-color: #3a3a3c;
+      .tile.flip {
+        animation: flip 0.6s ease;
+      }
+
+      @keyframes flip {
+        0% {
+          transform: rotateX(0deg);
+        }
+
+        45% {
+          transform: rotateX(90deg);
+        }
+
+        55% {
+          transform: rotateX(90deg);
+        }
+
+        100% {
+          transform: rotateX(0deg);
+        }
+      }
+
+      @keyframes pop {
+        0% {
+          transform: scale(0.85);
+        }
+
+        60% {
+          transform: scale(1.12);
+        }
+
+        100% {
+          transform: scale(1);
+        }
+      }
+      .tile.correct {
+        background: var(--green);
+        border-color: var(--green);
+        box-shadow: 0 0 15px rgba(106, 170, 100, 0.35);
+      }
+
+      .tile.present {
+        background: var(--yellow);
+        border-color: var(--yellow);
+        box-shadow: 0 0 15px rgba(201, 180, 88, 0.25);
+      }
+
+      .tile.absent {
+        background: var(--gray);
+        border-color: var(--gray);
+      }
+
+      .key.correct {
+        background: var(--green);
+        color: white;
+      }
+
+      .key.present {
+        background: var(--yellow);
+        color: white;
+      }
+
+      .key.absent {
+        background: var(--gray);
+        color: white;
+      }
+      .key {
+        height: 58px;
+
+        min-width: 44px;
+
+        padding: 0 14px;
+
+        border: none;
+
+        border-radius: 8px;
+
+        background: var(--keyboard);
+
+        color: white;
+
+        font-weight: bold;
+
+        font-size: 16px;
+
+        cursor: pointer;
+
+        transition:
+          transform 0.12s,
+          background 0.2s,
+          border-color 0.2s,
+          color 0.2s;
+      }
+      .key:hover {
+        transform: translateY(-2px);
+      }
+      .key:active {
+        transform: scale(0.92);
+      }
+
+      .key {
+        transition:
+          background 0.2s,
+          color 0.2s,
+          transform 0.08s;
+      }
+      .key:hover {
+        filter: brightness(1.15);
       }
       .row {
         display: flex;
-        gap: 6px;
+
         justify-content: center;
-        margin: 6px;
+
+        gap: 6px;
+
+        margin: 4px;
       }
-      .key {
-        min-width: 42px;
-        height: 58px;
-        border-radius: 6px;
-        background: #818384;
-        color: #fff;
-        border: none;
-        font-weight: 700;
-        cursor: pointer;
-        padding: 0 10px;
+      #kb {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .title {
+        letter-spacing: 6px;
+
+        font-size: 42px;
+
+        font-weight: 800;
+
+        user-select: none;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #111827;
+        --tile: #1b2636;
+        --border: rgb(42, 56, 73);
+        --text: #ffffff;
+        --green: #6aaa64;
+        --yellow: #c9b458;
+        --gray: #3a3a3c;
+        --keyboard: #2a3849;
+        --tile-size: clamp(42px, 8vmin, 68px);
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Clear Sans", "Segoe UI", sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        width: 100vw;
+        height: 100vh;
+
+        display: flex;
+        flex-direction: column;
+
+        justify-content: center;
+        align-items: center;
+
+        gap: 18px;
+
+        padding: 16px;
       }
       .wide {
         min-width: 70px;
+
+        font-size: 13px;
+
+        letter-spacing: 0.5px;
+      }
+      #winOverlay {
+        position: fixed;
+
+        inset: 0;
+
+        display: flex;
+
+        justify-content: center;
+
+        align-items: center;
+
+        background: rgba(10, 18, 30, 0.55);
+
+        backdrop-filter: blur(8px);
+
+        opacity: 0;
+
+        pointer-events: none;
+
+        transition: 0.4s;
+
+        z-index: 1000;
+      }
+
+      #winOverlay.show {
+        opacity: 1;
+      }
+      #congrats {
+        font-size: clamp(60px, 12vw, 140px);
+
+        font-weight: 900;
+
+        letter-spacing: 8px;
+
+        color: white;
+
+        text-shadow:
+          0 0 20px rgba(255, 255, 255, 0.4),
+          0 0 40px rgba(106, 170, 100, 0.5),
+          0 0 60px rgba(106, 170, 100, 0.3);
+
+        opacity: 0;
+
+        transform: scale(0.4);
+      }
+      #winOverlay.show #congrats {
+        animation: winPop 0.8s forwards;
+      }
+
+      @keyframes winPop {
+        0% {
+          transform: scale(0.2) rotate(-8deg);
+
+          opacity: 0;
+        }
+
+        45% {
+          transform: scale(1.22) rotate(2deg);
+
+          opacity: 1;
+        }
+
+        70% {
+          transform: scale(0.94);
+        }
+
+        100% {
+          transform: scale(1);
+
+          opacity: 1;
+        }
+      }
+      #confetti {
+        position: fixed;
+
+        inset: 0;
+
+        pointer-events: none;
+
+        z-index: 999;
       }
     </style>
   </head>
   <body>
-    <h1>WORDLE</h1>
-    <div id="board"></div>
-    <div id="kb"></div>
-    <p id="msg"></p>
-    <script>
-      const secret = "DRLINO";
-      let r = 0,
-        c = 0,
-        guess = ["", "", "", "", "", ""];
-      const B = document.getElementById("board");
-      for (let i = 0; i < 36; i++) {
-        let d = document.createElement("div");
-        d.className = "tile";
-        B.appendChild(d);
-      }
-      const rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
-      const kb = document.getElementById("kb");
-      rows.forEach((s, i) => {
-        let row = document.createElement("div");
-        row.className = "row";
-        if (i == 2) {
-          let e = btn("ENTER", "wide");
-          e.onclick = enter;
-          row.appendChild(e);
+    <div class="container">
+      <h1 class="title">WORDLE</h1>
+      <div id="board"></div>
+      <div id="kb"></div>
+      <p id="msg"></p>
+
+      <div id="winOverlay">
+        <h1 id="congrats">CONGRATS!</h1>
+      </div>
+
+      <canvas id="confetti"></canvas>
+      <script>
+        const secret = "DRLINO";
+        let r = 0,
+          c = 0,
+          guess = ["", "", "", "", "", ""];
+
+        const B = document.getElementById("board");
+        const kb = document.getElementById("kb");
+        const msg = document.getElementById("msg"); // Added missing reference
+
+        // Build Board
+        for (let i = 0; i < 36; i++) {
+          let d = document.createElement("div");
+          d.className = "tile";
+          B.appendChild(d);
         }
-        [...s].forEach((ch) => {
-          let b = btn(ch);
-          b.onclick = () => press(ch);
-          b.id = "k" + ch;
-          row.appendChild(b);
+
+        // Build Keyboard
+        const rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+        rows.forEach((s, i) => {
+          let row = document.createElement("div");
+          row.className = "row";
+          if (i == 2) {
+            let e = btn("ENTER", "wide");
+            e.onclick = enter;
+            row.appendChild(e);
+          }
+          [...s].forEach((ch) => {
+            let b = btn(ch);
+            b.onclick = () => press(ch);
+            b.id = "k" + ch;
+            row.appendChild(b);
+          });
+          if (i == 2) {
+            let d = btn("⌫", "wide");
+            d.onclick = back;
+            row.appendChild(d);
+          }
+          kb.appendChild(row);
         });
-        if (i == 2) {
-          let d = btn("⌫", "wide");
-          d.onclick = back;
-          row.appendChild(d);
+
+        function btn(t, cl = "") {
+          let b = document.createElement("button");
+          b.textContent = t;
+          b.className = "key " + cl;
+          return b;
         }
-        kb.appendChild(row);
-      });
-      function btn(t, cl = "") {
-        let b = document.createElement("button");
-        b.textContent = t;
-        b.className = "key " + cl;
-        return b;
-      }
-      function cells() {
-        return [...document.querySelectorAll(".tile")].slice(r * 6, r * 6 + 6);
-      }
-      function draw() {
-        let cs = cells();
-        for (let i = 0; i < 6; i++) cs[i].textContent = guess[i];
-      }
-      function press(ch) {
-        if (c < 6) {
-          guess[c++] = ch;
-          draw();
+
+        function cells() {
+          return [...document.querySelectorAll(".tile")].slice(
+            r * 6,
+            r * 6 + 6,
+          );
         }
-      }
-      function back() {
-        if (c) {
-          guess[--c] = "";
-          draw();
-        }
-      }
-      function paintKey(ch, cls) {
-        let k = document.getElementById("k" + ch);
-        if (!k) return;
-        if (k.classList.contains("correct")) return;
-        if (k.classList.contains("present") && cls == "absent") return;
-        k.classList.remove("present", "absent", "correct");
-        k.classList.add(cls);
-      }
-      function enter() {
-        if (c < 6) return;
-        let g = guess.join("");
-        let used = [0, 0, 0, 0, 0, 0],
-          cs = cells();
-        for (let i = 0; i < 6; i++)
-          if (g[i] == secret[i]) {
-            cs[i].classList.add("correct");
-            used[i] = 1;
-            paintKey(g[i], "correct");
-          }
-        for (let i = 0; i < 6; i++) {
-          if (cs[i].classList.contains("correct")) continue;
-          let f = -1;
-          for (let j = 0; j < 6; j++)
-            if (!used[j] && secret[j] == g[i]) {
-              f = j;
-              break;
+
+        function draw() {
+          let cs = cells();
+          for (let i = 0; i < 6; i++) {
+            if (cs[i].textContent !== guess[i] && guess[i] != "") {
+              cs[i].classList.remove("pop");
+              void cs[i].offsetWidth;
+              cs[i].classList.add("pop");
             }
-          if (f != -1) {
-            used[f] = 1;
-            cs[i].classList.add("present");
-            paintKey(g[i], "present");
-          } else {
-            cs[i].classList.add("absent");
-            paintKey(g[i], "absent");
+            cs[i].textContent = guess[i];
           }
         }
-        if (g == secret) {
-          msg.textContent = "🎉 You solved it!";
-          document.onkeydown = null;
-          return;
+
+        function press(ch) {
+          if (c < 6) {
+            guess[c++] = ch;
+            draw();
+          }
         }
-        r++;
-        c = 0;
-        guess = ["", "", "", "", "", ""];
-        if (r == 6) {
-          msg.textContent = "Game Over! Word: " + secret;
+
+        function back() {
+          if (c) {
+            guess[--c] = "";
+            draw();
+          }
         }
-      }
-      document.onkeydown = (e) => {
-        if (e.key == "Enter") enter();
-        else if (e.key == "Backspace") back();
-        else {
-          let k = e.key.toUpperCase();
-          if (/^[A-Z]$/.test(k)) press(k);
+
+        function paintKey(ch, cls) {
+          let k = document.getElementById("k" + ch);
+
+          if (!k) return;
+
+          if (k.classList.contains("correct")) return;
+
+          if (k.classList.contains("present") && cls == "absent") return;
+
+          k.classList.remove("correct", "present", "absent");
+
+          k.classList.add(cls);
+
+          k.animate(
+            [
+              { transform: "scale(1)" },
+
+              { transform: "scale(1.15)" },
+
+              { transform: "scale(1)" },
+            ],
+            {
+              duration: 180,
+            },
+          );
         }
-      };
-    </script>
+
+        function enter() {
+          if (c < 6) return;
+          let g = guess.join("");
+          let used = [0, 0, 0, 0, 0, 0];
+          let cs = cells();
+          let states = Array(6).fill("absent");
+
+          // Step 1: Pre-calculate states (Correct)
+          for (let i = 0; i < 6; i++) {
+            if (g[i] == secret[i]) {
+              states[i] = "correct";
+              used[i] = 1;
+            }
+          }
+
+          // Step 2: Pre-calculate states (Present / Absent)
+          for (let i = 0; i < 6; i++) {
+            if (states[i] === "correct") continue;
+            let f = -1;
+            for (let j = 0; j < 6; j++) {
+              if (!used[j] && secret[j] == g[i]) {
+                f = j;
+                break;
+              }
+            }
+            if (f != -1) {
+              used[f] = 1;
+              states[i] = "present";
+            }
+          }
+
+          // Step 3: Trigger Staggered Animations
+          for (let i = 0; i < 6; i++) {
+            setTimeout(() => {
+              cs[i].classList.add("flip");
+
+              // Change the color exactly halfway through the tile's individual flip
+              setTimeout(() => {
+                cs[i].classList.add(states[i]);
+                paintKey(g[i], states[i]);
+              }, 300);
+
+              cs[i].addEventListener(
+                "animationend",
+                () => {
+                  cs[i].classList.remove("flip");
+                },
+                { once: true },
+              );
+            }, i * 250); // Stagger each tile by 250ms
+          }
+
+          // Step 4: Check for Win/Loss after all animations finish
+          setTimeout(() => {
+            if (g == secret) {
+              document.getElementById("winOverlay").classList.add("show");
+
+              launchConfetti();
+              document.onkeydown = null;
+              return;
+            }
+            r++;
+            c = 0;
+            guess = ["", "", "", "", "", ""];
+            if (r == 6) {
+              msg.textContent = "Game Over! Word: " + secret;
+            }
+          }, 1800);
+        }
+
+        // Physical Keyboard Listener
+        document.onkeydown = (e) => {
+          if (e.key == "Enter") enter();
+          else if (e.key == "Backspace") back();
+          else {
+            let k = e.key.toUpperCase();
+            if (/^[A-Z]$/.test(k)) press(k);
+          }
+        };
+        function launchConfetti() {
+          const canvas = document.getElementById("confetti");
+          const ctx = canvas.getContext("2d");
+
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+
+          const colors = [
+            "#6aaa64",
+            "#c9b458",
+            "#4aa8ff",
+            "#ff5e5e",
+            "#ffb347",
+            "#ffffff",
+          ];
+
+          const pieces = [];
+
+          for (let i = 0; i < 220; i++) {
+            pieces.push({
+              x: Math.random() * canvas.width,
+
+              y: -Math.random() * canvas.height,
+
+              w: 6 + Math.random() * 8,
+
+              h: 8 + Math.random() * 10,
+
+              color: colors[Math.floor(Math.random() * colors.length)],
+
+              vx: -2 + Math.random() * 4,
+
+              vy: 2 + Math.random() * 5,
+
+              rot: Math.random() * 360,
+
+              vr: -6 + Math.random() * 12,
+            });
+          }
+
+          let frames = 0;
+
+          function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            pieces.forEach((p) => {
+              p.x += p.vx;
+
+              p.y += p.vy;
+
+              p.rot += p.vr;
+
+              ctx.save();
+
+              ctx.translate(p.x, p.y);
+
+              ctx.rotate((p.rot * Math.PI) / 180);
+
+              ctx.fillStyle = p.color;
+
+              ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+
+              ctx.restore();
+            });
+
+            frames++;
+
+            if (frames < 320) {
+              requestAnimationFrame(draw);
+            } else {
+              ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+          }
+
+          draw();
+        }
+        window.addEventListener("resize", () => {
+          const c = document.getElementById("confetti");
+
+          c.width = window.innerWidth;
+
+          c.height = window.innerHeight;
+        });
+      </script>
+    </div>
   </body>
 </html>
