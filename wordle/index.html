@@ -1,1 +1,193 @@
-
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Offline Wordle</title>
+    <style>
+      body {
+        margin: 0;
+        background: #121213;
+        color: #fff;
+        font-family: system-ui, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      h1 {
+        letter-spacing: 2px;
+      }
+      #board {
+        display: grid;
+        grid-template-columns: repeat(6, 62px);
+        gap: 6px;
+        margin: 20px;
+      }
+      .tile {
+        width: 62px;
+        height: 62px;
+        border: 2px solid #3a3a3c;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .correct {
+        background: #6aaa64;
+        border-color: #6aaa64;
+      }
+      .present {
+        background: #c9b458;
+        border-color: #c9b458;
+      }
+      .absent {
+        background: #3a3a3c;
+        border-color: #3a3a3c;
+      }
+      .row {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin: 6px;
+      }
+      .key {
+        min-width: 42px;
+        height: 58px;
+        border-radius: 6px;
+        background: #818384;
+        color: #fff;
+        border: none;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0 10px;
+      }
+      .wide {
+        min-width: 70px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>WORDLE</h1>
+    <div id="board"></div>
+    <div id="kb"></div>
+    <p id="msg"></p>
+    <script>
+      const secret = "DRLINO";
+      let r = 0,
+        c = 0,
+        guess = ["", "", "", "", "", ""];
+      const B = document.getElementById("board");
+      for (let i = 0; i < 36; i++) {
+        let d = document.createElement("div");
+        d.className = "tile";
+        B.appendChild(d);
+      }
+      const rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+      const kb = document.getElementById("kb");
+      rows.forEach((s, i) => {
+        let row = document.createElement("div");
+        row.className = "row";
+        if (i == 2) {
+          let e = btn("ENTER", "wide");
+          e.onclick = enter;
+          row.appendChild(e);
+        }
+        [...s].forEach((ch) => {
+          let b = btn(ch);
+          b.onclick = () => press(ch);
+          b.id = "k" + ch;
+          row.appendChild(b);
+        });
+        if (i == 2) {
+          let d = btn("⌫", "wide");
+          d.onclick = back;
+          row.appendChild(d);
+        }
+        kb.appendChild(row);
+      });
+      function btn(t, cl = "") {
+        let b = document.createElement("button");
+        b.textContent = t;
+        b.className = "key " + cl;
+        return b;
+      }
+      function cells() {
+        return [...document.querySelectorAll(".tile")].slice(r * 6, r * 6 + 6);
+      }
+      function draw() {
+        let cs = cells();
+        for (let i = 0; i < 6; i++) cs[i].textContent = guess[i];
+      }
+      function press(ch) {
+        if (c < 6) {
+          guess[c++] = ch;
+          draw();
+        }
+      }
+      function back() {
+        if (c) {
+          guess[--c] = "";
+          draw();
+        }
+      }
+      function paintKey(ch, cls) {
+        let k = document.getElementById("k" + ch);
+        if (!k) return;
+        if (k.classList.contains("correct")) return;
+        if (k.classList.contains("present") && cls == "absent") return;
+        k.classList.remove("present", "absent", "correct");
+        k.classList.add(cls);
+      }
+      function enter() {
+        if (c < 6) return;
+        let g = guess.join("");
+        let used = [0, 0, 0, 0, 0, 0],
+          cs = cells();
+        for (let i = 0; i < 6; i++)
+          if (g[i] == secret[i]) {
+            cs[i].classList.add("correct");
+            used[i] = 1;
+            paintKey(g[i], "correct");
+          }
+        for (let i = 0; i < 6; i++) {
+          if (cs[i].classList.contains("correct")) continue;
+          let f = -1;
+          for (let j = 0; j < 6; j++)
+            if (!used[j] && secret[j] == g[i]) {
+              f = j;
+              break;
+            }
+          if (f != -1) {
+            used[f] = 1;
+            cs[i].classList.add("present");
+            paintKey(g[i], "present");
+          } else {
+            cs[i].classList.add("absent");
+            paintKey(g[i], "absent");
+          }
+        }
+        if (g == secret) {
+          msg.textContent = "🎉 You solved it!";
+          document.onkeydown = null;
+          return;
+        }
+        r++;
+        c = 0;
+        guess = ["", "", "", "", "", ""];
+        if (r == 6) {
+          msg.textContent = "Game Over! Word: " + secret;
+        }
+      }
+      document.onkeydown = (e) => {
+        if (e.key == "Enter") enter();
+        else if (e.key == "Backspace") back();
+        else {
+          let k = e.key.toUpperCase();
+          if (/^[A-Z]$/.test(k)) press(k);
+        }
+      };
+    </script>
+  </body>
+</html>
